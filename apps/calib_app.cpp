@@ -7,6 +7,7 @@
 #include <filesystem>
 
 #include "tools.h"
+#include "calibration.h"
 
 #include "opencv2/core.hpp"
 #include <opencv2/core/utility.hpp>
@@ -55,32 +56,51 @@ int main(int argc, char* argv[])
 
     std::string results_path = cfg_data["images_dir"];
 
-    int camID = cfg_data["camID"];
-    cv::Size boardSize(cfg_data["calibration"]["width"], cfg_data["calibration"]["height"]);
-    cv::VideoCapture cap(camID);
+    // Nombre de cercle en largeur et hauteur afin de former le plus grand rectangle
+    cv::Size boardSize(cfg_data["board_width"], cfg_data["board_height"]);
 
-    cv::Mat img;
-    std::vector<cv::Point2f> pointbuf;
-    bool found = false;
+    // Taille en cm entre deux cercles
+    float squareSize = cfg_data["square_size"];
+    float grid_width = squareSize * (boardSize.width - 1);
+
+    cv::Size imageSize;
+    std::vector<std::vector<cv::Point2f> > imagePoints;
+
+    int flags = 0;
+
+    flags |= CALIB_FIX_PRINCIPAL_POINT; // fix the principal point at the center
+
+    // flags |= CALIB_ZERO_TANGENT_DIST; // assume zero tangential distortion
 
     for (const auto & entry : std::filesystem::directory_iterator(results_path)) {
+        cv::Mat img;
+        bool found = false;
+
         img = cv::imread(entry.path());
         if(img.empty()) {
             // LOG(ERROR) << "img "<< entry.path() << " not an image ";
             continue;
         }
+        std::vector<cv::Point2f> pointbuf;
         found = cv::findCirclesGrid(img, boardSize, pointbuf);
         if(found) {
             cv::drawChessboardCorners(img, boardSize, cv::Mat(pointbuf), true);
         }
+        imagePoints.push_back(pointbuf);
+        imageSize = img.size();
         cv::imshow("Image View", img);
-        cv::waitKey(0);
+        cv::waitKey(1);
     }
 
-    std::string outputFilename = results_path + "matrix.txt";
-    // runAndSave(outputFilename, imagePoints, imageSize,
-    //            boardSize, pattern, squareSize, grid_width, release_object, aspectRatio,
-    //            flags, cameraMatrix, distCoeffs,
-    //            writeExtrinsics, writePoints, writeGrid);
+    cv::Mat cameraMatrix, distCoeffs;
+    bool writeExtrinsics = true;
+    bool writePoints = true;
+    bool writeGrid = true;
+
+    std::string outputFilename = results_path + "/matrix.yaml";
+    runAndSave(outputFilename, imagePoints, imageSize,
+               boardSize, squareSize, grid_width,
+               flags, cameraMatrix, distCoeffs,
+               writeExtrinsics, writePoints, writeGrid);
     return 0;
 }

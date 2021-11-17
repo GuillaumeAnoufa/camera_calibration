@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
     mkdirp(results_path);
 
     int camID = cfg_data["camID"];
-    cv::Size boardSize(cfg_data["calibration"]["width"], cfg_data["calibration"]["height"]);
+    cv::Size boardSize(cfg_data["board_width"], cfg_data["board_height"]);
     cv::VideoCapture cap(camID);
 
     cv::Mat img, view;
