@@ -63,11 +63,23 @@ int main(int argc, char* argv[])
     std::vector<cv::Point2f> pointbuf;
     int count = 0;
     bool found = false;
+    int pattern = cfg_data["pattern"];
 
     while(1) {
         cap >> img;
         img.copyTo(view);
-        found = cv::findCirclesGrid(view, boardSize, pointbuf);
+        switch( pattern ) {
+            case CHESSBOARD:
+                found = findChessboardCorners(view, boardSize, pointbuf,
+                    cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_FAST_CHECK | cv::CALIB_CB_NORMALIZE_IMAGE);
+                break;
+            case CIRCLES_GRID:
+                found = cv::findCirclesGrid(view, boardSize, pointbuf);
+                break;
+            default:
+                std::cerr << "Unknown pattern type " << '\n';
+                return -1;
+        }
         if(found) {
             cv::drawChessboardCorners(view, boardSize, cv::Mat(pointbuf), true);
         }

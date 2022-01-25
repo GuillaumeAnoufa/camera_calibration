@@ -38,7 +38,10 @@ int main(int argc, char* argv[])
     FLAGS_logtostderr = 1;
 #endif
 
-    std::string configPath ="config.cfg";
+    if(argc != 2)
+        LOG(FATAL) << "Usage: ./bin/calib_app [path_to_config_file]";
+
+    std::string configPath = argv[1];// "config_sharetod.cfg";
     libconfig::Config cfg;
     try {
         cfg.readFile(configPath.c_str());
@@ -62,6 +65,7 @@ int main(int argc, char* argv[])
     // Taille en cm entre deux cercles
     float squareSize = cfg_data["square_size"];
     float grid_width = squareSize * (boardSize.width - 1);
+    int pattern = cfg_data["pattern"];
 
     cv::Size imageSize;
     std::vector<std::vector<cv::Point2f> > imagePoints;
@@ -82,14 +86,26 @@ int main(int argc, char* argv[])
             continue;
         }
         std::vector<cv::Point2f> pointbuf;
-        found = cv::findCirclesGrid(img, boardSize, pointbuf);
+        switch( pattern ) {
+            case CHESSBOARD:
+                // found = findChessboardCorners(img, boardSize, pointbuf,
+                //     cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_FAST_CHECK | cv::CALIB_CB_NORMALIZE_IMAGE);
+                found = findChessboardCornersSB(img, boardSize, pointbuf);
+                break;
+            case CIRCLES_GRID:
+                found = cv::findCirclesGrid(img, boardSize, pointbuf);
+                break;
+            default:
+                std::cerr << "Unknown pattern type " << '\n';
+                return -1;
+        }
         if(found) {
             cv::drawChessboardCorners(img, boardSize, cv::Mat(pointbuf), true);
         }
         imagePoints.push_back(pointbuf);
         imageSize = img.size();
         cv::imshow("Image View", img);
-        cv::waitKey(1);
+        cv::waitKey(0);
     }
 
     cv::Mat cameraMatrix, distCoeffs;

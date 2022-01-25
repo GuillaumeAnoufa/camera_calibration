@@ -5,6 +5,8 @@
 #include <sstream>
 #include <algorithm>
 
+enum Pattern { CHESSBOARD = 0, CIRCLES_GRID = 1, ASYMMETRIC_CIRCLES_GRID = 2 };
+
 std::string date2Str() {
     std::time_t t = std::time(nullptr);
     std::tm tm = *std::localtime(&t);
